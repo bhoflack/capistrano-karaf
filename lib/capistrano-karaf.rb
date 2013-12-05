@@ -1,15 +1,16 @@
 require 'sshkit'
 
-SSHKit.config.command_map = 
-    {
-        :features_addurl    => 'features:addurl',
-        :features_removeurl => 'features:removeurl',
-        :features_install   => 'features:install',
-        :features_list      => 'features:list',
-        :features_info      => 'features:info',
-        :headers            => 'headers',
-        :list               => 'list'
-    }
+SSHKit.config.command_map[:features_addurl] = 'features:addurl'
+SSHKit.config.command_map[:features_removeurl] = 'features:removeurl'
+SSHKit.config.command_map[:features_refreshurl] = 'features:refreshurl'
+SSHKit.config.command_map[:features_install] = 'features:install'
+SSHKit.config.command_map[:features_list] = 'features:list'
+SSHKit.config.command_map[:features_info] = 'features:info'
+SSHKit.config.command_map[:headers] = 'headers'
+SSHKit.config.command_map[:list] = 'list'
+SSHKit.config.command_map[:log_set] = 'log:set'
+SSHKit.config.command_map[:stop] = 'osgi:stop'
+SSHKit.config.command_map[:start] = 'osgi:start'
 
 def add_url (url)
     execute(:features_addurl, url)
@@ -17,6 +18,10 @@ end
 
 def remove_url (url)
     execute(:features_removeurl, url)
+end
+
+def features_refreshurl
+    execute(:features_refreshurl)
 end
 
 def feature_install (name)
@@ -27,25 +32,43 @@ def feature_uninstall (name)
     execute(:features_uninstall, name)
 end
 
-def list_bundles ()
-  bundle_line_matcher = /^\[(?<BundleId>[ \d]+)\] \[(?<BundleStatus>[ \w]+)\] \[[ ]*\] \[(?<ContextStatus>[ \w]+)\] \[(?<BundleLevel> [ \d]+)\] (?<BundleName>[\w\-\:]+) \((?<BundleVersion>.+)\)/
+def log_set (level)
+    execute(:log_set, level)
+end
 
-  
+def start (bundleId)
+    execute(:start, bundleId)
+end
+
+def stop (bundleId)
+    execute(:stop, bundleId)
+end
+
+def fragment_bundle? (bundleId)
+    headers = capture(:headers)
+    headers.lines.any? {|l| l.match('^Fragment-Host.*')}
+end
+
+def list_bundles ()
+  bundle_line_matcher = %r{(?<id> \d+){0}
+                           (?<status> \w+){0}
+                           (?<context> \w*){0}
+                           (?<level> \d+){0}
+                           (?<name> [\w\s\-\:]+){0}
+                           (?<version> .+){0}
+
+                           ^\[\s*\g<id>\]\s\[\s*\g<status>\s*\]\s\[\s{12}\]\s\[\s*\g<context>\s*\]\s\[\s*\g<level>\s*\]\s\g<name>\s\(\g<version>\)
+                          }x
+      
     data = capture(:list)
     bundles = []
     data.lines.each do |line|
       m = bundle_line_matcher.match(line)
       if m then
-        bundles.push({ :id => m['BundleId'],
-                       :status => m['BundleStatus'],
-                       :context => m['ContextStatus'],
-                       :level => m['BundleLevel'],
-                       :name => m['BundleName'],
-                       :version => m['BundleVersion']
-                     })
+        bundles.push(m)
       end
-      bundles
     end
+    bundles
 end
 
 def started? (name)
