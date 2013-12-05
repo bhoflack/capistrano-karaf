@@ -113,7 +113,7 @@ end
 def extract_bundles_from_feature (data)
   bundles = []
   data.lines.each do |l|
-    m = l.match(/.*mvn:(?<GroupId>[\w\.]+)\/(?<ArtifactId>[\w-\.]+)\/(?<Version>[\d\w\.-]+)/)
+    m = l.match(/.*mvn:(?<GroupId>[\w\.]+)\/(?<ArtifactId>[-\w\.]+)\/(?<Version>[-\d\w\.]+)/)
     if m then 
       bundles.push({:groupId 	=> m['GroupId'],
 		    :artifactId	=> m['ArtifactId'],
