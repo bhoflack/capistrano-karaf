@@ -53,24 +53,44 @@ end
 def list_bundles ()
   bundle_line_matcher = %r{(?<id> \d+){0}
                            (?<status> \w+){0}
+                           (?<blueprint> \w*){0}
                            (?<context> \w*){0}
                            (?<level> \d+){0}
                            (?<name> [\w\s\-\:]+){0}
                            (?<version> .+){0}
 
-                           ^\[\s*\g<id>\]\s\[\s*\g<status>\s*\]\s\[\s{12}\]\s\[\s*\g<context>\s*\]\s\[\s*\g<level>\s*\]\s\g<name>\s\(\g<version>\)
+                           ^\[\s*\g<id>\]\s\[\s*\g<status>\s*\]\s\[\s*\g<blueprint>\s*\]\s\[\s*\g<context>\s*\]\s\[\s*\g<level>\s*\]\s\g<name>\s\(\g<version>\)
                           }x
       
-    data = capture(:list)
-    bundles = []
-    data.lines.each do |line|
-      m = bundle_line_matcher.match(line)
-      if m then
-        bundles.push(m)
-      end
+  data = capture(:list)
+  bundles = []
+  data.lines.each do |line|
+    m = bundle_line_matcher.match(line)
+    if m then
+      bundles.push(m)
     end
-    bundles
+  end
+  bundles.collect {|m| Hash[m.names.zip(m.captures)]}
 end
+
+def wait_for_all_bundles (timeout = 5, sleeptime = 1, &pred)
+  timeout1 = Time.now + timeout
+  
+  until Time.now > timeout1 or list_bundles.all? { |b| pred.call b} 
+    puts "Some bundles are still failing the predicate"
+    sleep sleeptime
+  end
+end
+
+def wait_for_bundle (timeout = 5, sleeptime = 1, &pred)
+  timeout1 = Time.now + timeout
+
+  while Time.now < timeout1 and list_bundles.none? { |b| pred.call b} 
+    puts "Bundle not yet started"
+    sleep sleeptime
+  end
+end
+
 
 def started? (name)
   bundle = list_bundles.find {|b| b[:name] == name}
