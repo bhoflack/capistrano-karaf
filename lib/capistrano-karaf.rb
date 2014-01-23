@@ -50,6 +50,28 @@ def fragment_bundle? (bundleId)
     headers.lines.any? {|l| l.match('^Fragment-Host.*')}
 end
 
+def break_listing (matcher,data)
+    breaklist = []
+  data.lines.each do |line|
+    m = matcher.match(line)
+    if m then
+      breaklist.push(m)
+    end
+  end
+  breaklist.collect {|m| Hash[m.names.zip(m.captures)]}
+end
+
+def list_features ()
+  feature_line_matcher = %r{
+				(?<status> \w+){0}
+				(?<version> [\d\w\-\.\s]+){0}
+				(?<name> [\w\-\:]+){0}
+				(?<repository> [\w\-\s\:\.]+){0}
+			^\[\s*\g<status>\]\s\[\s*\g<version>\s*\]\s*\g<name>\s*\g<repository>}x
+  data=capture(:features_list)
+  break_listing feature_line_matcher,data
+end
+
 def list_bundles ()
   bundle_line_matcher = %r{(?<id> \d+){0}
                            (?<status> \w+){0}
@@ -63,14 +85,8 @@ def list_bundles ()
                           }x
       
   data = capture(:list)
-  bundles = []
-  data.lines.each do |line|
-    m = bundle_line_matcher.match(line)
-    if m then
-      bundles.push(m)
-    end
-  end
-  bundles.collect {|m| Hash[m.names.zip(m.captures)]}
+
+  break_listing bundle_line_matcher,data
 end
 
 def wait_for_all_bundles (timeout = 5, sleeptime = 1, &pred)

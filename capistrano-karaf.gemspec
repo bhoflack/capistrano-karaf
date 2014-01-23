@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name          = 'capistrano-karaf'
-  s.version       = '1.2.3'
+  s.version       = '1.2.4'
   s.date          = '2014-01-23'
   s.summary       = 'Capistrano functions for communicating with karaf'
   s.authors       = ['Brecht Hoflack']
