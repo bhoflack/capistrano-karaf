@@ -22,7 +22,7 @@ end
 def remove_artifact_urls (groupID, artifactID)
    urlsToRemove=list_urls.select {|url| url['groupID']==groupID&&url['artifactID']==artifactID}	
    urlsToRemove.each do |url|   	
-	remove_url ("mvn:"+url["groupID"]+"/"+url["artifactID"]+"/"+url["version"]+"/xml/features")
+	remove_url ("mvn:#{url["groupID"]}/#{url["artifactID"]}/#{url["version"]}/xml/features")
    end
 end
 
@@ -38,12 +38,16 @@ def feature_install (name)
     execute(:features_install, name)
 end
 
-def feature_uninstall (name)
+def feature_uninstall_safe (name)
     if (feature_installed? (name))
 	execute(:features_uninstall, name)
     else
-	puts "features:"+name+" is not installed so does not need to uninstall it"
+	puts "features:#{name} is not installed so does not need to uninstall it"
     end
+end
+
+def feature_uninstall (name)
+	execute(:features_uninstall, name)
 end
 
 def log_set (level)
@@ -125,11 +129,7 @@ end
 
 def feature_installed? (name)
   feature=list_features.find {|f| f['name']==name}
-  if (!feature)
-	nil
-  else
-	feature['status']=='installed'
-  end
+  feature['status']=='installed' unless feature.nil?
 end
 
 def wait_for_bundle (timeout = 5, sleeptime = 1, &pred)
