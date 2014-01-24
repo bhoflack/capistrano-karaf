@@ -1,6 +1,7 @@
 require 'sshkit'
 
 SSHKit.config.command_map[:features_addurl] = 'features:addurl'
+SSHKit.config.command_map[:features_listurl] = 'features:listurl'
 SSHKit.config.command_map[:features_removeurl] = 'features:removeurl'
 SSHKit.config.command_map[:features_refreshurl] = 'features:refreshurl'
 SSHKit.config.command_map[:features_install] = 'features:install'
@@ -17,6 +18,14 @@ def add_url (url)
     execute(:features_addurl, url)
 end
 
+
+def remove_artifact_urls (groupID, artifactID)
+   urlsToRemove=list_urls.select {|url| url['groupID']==groupID&&url['artifactID']==artifactID}	
+   urlsToRemove.each do |url|   	
+	remove_url ("mvn:#{url["groupID"]}/#{url["artifactID"]}/#{url["version"]}/xml/features")
+   end
+end
+
 def remove_url (url)
     execute(:features_removeurl, url)
 end
@@ -29,8 +38,16 @@ def feature_install (name)
     execute(:features_install, name)
 end
 
+def feature_uninstall_safe (name)
+    if (feature_installed? (name))
+	execute(:features_uninstall, name)
+    else
+	puts "features:#{name} is not installed so does not need to uninstall it"
+    end
+end
+
 def feature_uninstall (name)
-    execute(:features_uninstall, name)
+	execute(:features_uninstall, name)
 end
 
 def log_set (level)
@@ -50,6 +67,40 @@ def fragment_bundle? (bundleId)
     headers.lines.any? {|l| l.match('^Fragment-Host.*')}
 end
 
+def break_listing (matcher,data)
+    breaklist = []
+  data.lines.each do |line|
+    m = matcher.match(line)
+    if m then
+      breaklist.push(m)
+    end
+  end
+  breaklist.collect {|m| Hash[m.names.zip(m.captures)]}
+end
+
+def list_urls ()
+  url_line_matcher = %r{
+				(?<status> \w+){0}
+				(?<groupID> [\d\w\.\-]+){0}
+				(?<artifactID> [\w\.\-]+){0}
+				(?<version> [\w\.\-]+){0} 
+			\s*\g<status>\s*mvn\:\g<groupID>\/\g<artifactID>\/\g<version>.*
+				}x
+  data=capture(:features_listurl)
+  break_listing url_line_matcher,data
+end
+
+def list_features ()
+  feature_line_matcher = %r{
+				(?<status> \w+){0}
+				(?<version> [\d\w\-\.\s]+){0}
+				(?<name> [\w\-\:]+){0}
+				(?<repository> [\w\-\s\:\.]+){0}
+			^\[\s*\g<status>\s*\]\s\[\s*\g<version>\s*\]\s*\g<name>\s*\g<repository>}x
+  data=capture(:features_list)
+  break_listing feature_line_matcher,data
+end
+
 def list_bundles ()
   bundle_line_matcher = %r{(?<id> \d+){0}
                            (?<status> \w+){0}
@@ -63,14 +114,8 @@ def list_bundles ()
                           }x
       
   data = capture(:list)
-  bundles = []
-  data.lines.each do |line|
-    m = bundle_line_matcher.match(line)
-    if m then
-      bundles.push(m)
-    end
-  end
-  bundles.collect {|m| Hash[m.names.zip(m.captures)]}
+
+  break_listing bundle_line_matcher,data
 end
 
 def wait_for_all_bundles (timeout = 5, sleeptime = 1, &pred)
@@ -80,6 +125,11 @@ def wait_for_all_bundles (timeout = 5, sleeptime = 1, &pred)
     puts "Some bundles are still failing the predicate"
     sleep sleeptime
   end
+end
+
+def feature_installed? (name)
+  feature=list_features.find {|f| f['name']==name}
+  feature['status']=='installed' unless feature.nil?
 end
 
 def wait_for_bundle (timeout = 5, sleeptime = 1, &pred)
