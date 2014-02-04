@@ -118,12 +118,13 @@ def list_bundles ()
   break_listing bundle_line_matcher,data
 end
 
-def wait_for_all_bundles (timeout = 5, sleeptime = 1, &pred)
-  timeout1 = Time.now + timeout
+def wait_for_all_bundles (args={}, &pred)
+  args = {:timeout => 60, :sleeptime => 1}.merge(args)
+  timeout = Time.now + args[:timeout]
   
-  until Time.now > timeout1 or list_bundles.all? { |b| pred.call b} 
+  until Time.now > timeout or list_bundles.all? { |b| pred.call b} 
     puts "Some bundles are still failing the predicate"
-    sleep sleeptime
+    sleep args[:sleeptime]
   end
 end
 
@@ -132,12 +133,13 @@ def feature_installed? (name)
   feature['status']=='installed' unless feature.nil?
 end
 
-def wait_for_bundle (timeout = 5, sleeptime = 1, &pred)
-  timeout1 = Time.now + timeout
+def wait_for_bundle (args={}, &pred)
+  args = {:timeout => 60, :sleeptime => 1}.merge(args)
+  timeout = Time.now + args[:timeout]
 
-  while Time.now < timeout1 and list_bundles.none? { |b| pred.call b} 
+  while Time.now < timeout and list_bundles.none? { |b| pred.call b} 
     puts "Bundle not yet started"
-    sleep sleeptime
+    sleep args[:sleeptime]
   end
 end
 
