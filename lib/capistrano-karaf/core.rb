@@ -164,7 +164,7 @@ module Capistrano_Karaf
   def list_features
     feature_line_matcher = %r{    (?<status> \w+){0}
 				(?<version> [\d\w\-\.\s]+){0}
-				(?<name> [\w\-\:]+){0}
+				(?<name> [\w\-\.\:]+){0}
 				(?<repository> [\w\-\s\:\.]+){0}
 
 			^\[\s*\g<status>\s*\]\s\[\s*\g<version>\s*\]\s*\g<name>\s*\g<repository>
@@ -187,7 +187,7 @@ module Capistrano_Karaf
                            (?<blueprint> \w*){0}
                            (?<context> \w*){0}
                            (?<level> \d+){0}
-                           (?<name> [\w\s\-\:]+){0}
+                           (?<name> [\w\s\.\-\:]+){0}
                            (?<version> .+){0}
 
                            ^\[\s*\g<id>\]\s\[\s*\g<status>\s*\]\s\[\s*\g<blueprint>\s*\]\s\[\s*\g<context>\s*\]\s\[\s*\g<level>\s*\]\s\g<name>\s\(\g<version>\)
