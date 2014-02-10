@@ -12,6 +12,7 @@ SSHKit.config.command_map[:list] = 'osgi:list'
 SSHKit.config.command_map[:log_set] = 'log:set'
 SSHKit.config.command_map[:stop] = 'osgi:stop'
 SSHKit.config.command_map[:start] = 'osgi:start'
+SSHKit.config.command_map[:uninstall] = 'osgi:uninstall'
 
 def add_url (url)
     execute(:features_addurl, url)
@@ -43,6 +44,10 @@ end
 
 def stop (bundleId)
     execute(:stop, bundleId)
+end
+
+def uninstall (bundleId)
+    execute(:uninstall, bundleId)
 end
 
 def fragment_bundle? (bundleId)
