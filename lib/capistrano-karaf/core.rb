@@ -113,7 +113,7 @@ module Capistrano_Karaf
   # bundleId - a number containing the id of the bundle
   #
   # Examples
-  #   stop 100
+  #   stop(100)
   #   # => nil
   #
   # Returns nothing
