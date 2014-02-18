@@ -13,18 +13,18 @@ module Capistrano_Karaf
   #            - :feature_url - the string containing the feature url
   #            - :feature     - the string containing the feature name to upgrade
   #            - :version     - the string containing the version
-  #            - :action      - specifies when to upgrade the feature,  one of [ :lt, :eq, :gt ]
+  #            - :condition      - specifies when to upgrade the feature,  one of [ :lt, :eq, :gt ( the default ) ]
   #
   # Examples
   #   upgrade([{:feature_url => "mvn:repository/featurea/xml/features/1.1.0",
   #             :feature => "featurea",
   #             :version => "1.1.0",
-  #             :action => gt
+  #             :condition => gt
   #            },
   #            {:feature_url => "mvn:repository/featureb/xml/features/1.2.0",
   #             :feature => "featureb",
   #             :version => "1.2.0",
-  #             :action => gt
+  #             :condition => gt
   #            }])
   #  # => nil
   #
@@ -32,10 +32,12 @@ module Capistrano_Karaf
   def upgrade (projects)
     features = list_features()
     projects.each do |project|
+      project = {:condition => :gt}.merge(project)
+
       install_new_feature = true      
       installed_features = find_installed_with_name(features, project[:feature])
 
-      p = method(project[:action])
+      p = method(project[:condition])
       installed_features.each do |f|
         if p.call(f["version"], project[:version])
           feature_uninstall("#{project[:feature]}/#{f['version']}")
