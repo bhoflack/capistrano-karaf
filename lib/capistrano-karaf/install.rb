@@ -17,12 +17,28 @@ module Install
   #            - :feature     - the string containing the feature name to upgrade
   #            - :version     - the string containing the version
   #            - :condition   - specifies when to upgrade the feature,  one of [ :lt, :eq, :gt ( the default ) ]
+  #            - :hooks       - a map containing the hook name and the list of methods to trigger
+  #                               trigger can be one of :before_upgrade_feature,
+  #                                                     :before_uninstall_feature,
+  #                                                     :after_uninstall_feature,
+  #                                                     :before_install_feature,
+  #                                                     :after_install_feature,
+  #                                                     :after_upgrade_feature
+  # 
   #            or:
   #            - :groupId     - the string containing the groupId of the repository
   #            - :repository  - the string containing the name of the feature repository
   #            - :feature     - the string containing the name of the feature
   #            - :version     - the string containing the version or :latest
   #            - :condition   - specifies when to upgrade the feature,  one of [ :lt, :eq, :gt ( the default ) ]
+  #            - :hooks       - a map containing the hook name and the list of methods to trigger
+  #                               trigger can be one of :before_upgrade_feature,
+  #                                                     :before_uninstall_feature,
+  #                                                     :after_uninstall_feature,
+  #                                                     :before_install_feature,
+  #                                                     :after_install_feature,
+  #                                                     :after_upgrade_feature
+  #
   # Examples
   #   upgrade([{:feature_url => "mvn:repository/featurea/xml/features/1.1.0",
   #             :feature => "featurea",
@@ -46,13 +62,14 @@ module Install
   def upgrade (projects)
     features = list_features()
     projects.each do |project|
-      project = {:condition => :gt}.merge(project)
+      project = {:condition => :gt,
+                 :hooks => {}}.merge(project)
      
       install_new_feature = true      
       installed_features = find_installed_with_name(features, project[:feature])
 
       if project.keys.include? :groupId then
-        fh = create_feature_hash(project[:groupId], project[:repository], project[:feature], project[:version], project[:condition])
+        fh = create_feature_hash(project[:groupId], project[:repository], project[:feature], project[:version], project[:condition], project[:hooks])
         upgrade_feature(installed_features, fh)
       else
         upgrade_feature(installed_features, project)
@@ -92,8 +109,11 @@ module Install
     p = method(feature[:condition])
     
     installed_features.each do |f|
+      trigger_event(feature, :before_upgrade_feature)
       if p.call(f["version"], feature[:version])
+        trigger_event(feature, :before_uninstall_feature)
         feature_uninstall("#{feature[:feature]}/#{f['version']}")
+        trigger_event(feature, :after_uninstall_feature)
       else
         install_new_feature = false
       end
@@ -101,11 +121,25 @@ module Install
 
     if install_new_feature 
       add_url(feature[:feature_url])
+      trigger_event(feature, :before_install_feature)
       feature_install(feature[:feature])
+      trigger_event(feature, :after_install_feature)     
+    end
+    trigger_event(feature, :after_upgrade_feature)
+  end
+
+  def trigger_event (feature, event) 
+    feature[:hooks].fetch(event, []).each do |h|
+      if h.is_a? Proc
+        h.call()
+      elsif h.is_a? Symbol
+        proc = method(h)
+        proc.call()
+      end
     end
   end
 
-  def create_feature_hash(groupId, repository, feature, version, condition)
+  def create_feature_hash(groupId, repository, feature, version, condition, hooks)
     version1 = nil
     if version == :latest then
       version1 = extract_latest_version(latest_snapshot_version(groupId, repository))
@@ -118,7 +152,8 @@ module Install
     {:feature_url => featureUrl,
      :feature => feature,
      :version => version1,
-     :condition => condition
+     :condition => condition,
+     :hooks => hooks
     }    
   end
 end
