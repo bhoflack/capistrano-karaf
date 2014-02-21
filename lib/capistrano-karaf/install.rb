@@ -115,7 +115,7 @@ module Install
     end
 
     groupIdUrl = groupId.sub(/\./, "/")    
-    featureUrl = "mvn:#{groupId.sub(/\./, "/")}/#{repository}/#{version1}/xml/features"
+    featureUrl = "mvn:#{groupId.gsub(/\./, "/")}/#{repository}/#{version1}/xml/features"
     
     {:feature_url => featureUrl,
      :feature => feature,
