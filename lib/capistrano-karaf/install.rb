@@ -100,7 +100,6 @@ module Install
     end
 
     if install_new_feature 
-      puts "Installing feature #{feature}"
       add_url(feature[:feature_url])
       feature_install(feature[:feature])
     end
@@ -114,8 +113,7 @@ module Install
       version1 = version
     end
 
-    groupIdUrl = groupId.sub(/\./, "/")    
-    featureUrl = "mvn:#{groupId.gsub(/\./, "/")}/#{repository}/#{version1}/xml/features"
+    featureUrl = "mvn:#{groupId}/#{repository}/#{version1}/xml/features"
     
     {:feature_url => featureUrl,
      :feature => feature,
