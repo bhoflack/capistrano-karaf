@@ -118,6 +118,8 @@ module Install
         install_new_feature = false
       end
     end
+    
+    remove_otherversion_urls(feature[:feature_url])
 
     if install_new_feature 
       add_url(feature[:feature_url])
