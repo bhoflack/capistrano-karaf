@@ -5,6 +5,27 @@ module Capistrano_Karaf
 
   # Remove all feature repositories with a given groupID and artifactID
   #
+  # url - the url to look for other versions with same url
+  # 
+  # 
+  # Examples
+  #   remove_artifact_urls("mvn:com.melexis.esb/eventstore-feature/1.2/xml/features")
+  #   # => nil
+  #
+  # Returns nothing
+  def remove_otherversion_urls (url)
+    url_details_regex = %r{(?<groupID> [\w\.]+){0}
+                           (?<artifactID> [\w\-]+){0}
+                           ^mvn:\g<groupID>\/\g<artifactID>\/.*
+                          }x
+    urls_to_remove=matcher_to_hash(url_details_regex,url)
+    urls_to_remove.each do |u|   	
+	remove_artifact_urls(u['groupID'],u['artifactID'])
+    end
+  end
+
+  # Remove all feature repositories with a given groupID and artifactID
+  #
   # groupID - a string containing the groupID
   # artifactID - a string containing the artifactID
   # 
