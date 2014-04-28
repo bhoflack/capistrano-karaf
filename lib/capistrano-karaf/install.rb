@@ -8,6 +8,7 @@ require 'net/http'
 require 'rexml/document'
 
 module Install
+
   include Semantic_Versions
   
   # Upgrade a list of projects in karaf
@@ -61,20 +62,27 @@ module Install
   # Returns nothing
   def upgrade (projects)
     features = list_features()
-    projects.each do |project|
-      project = {:condition => :gt,
-                 :hooks => {}}.merge(project)
-     
-      install_new_feature = true      
-      installed_features = find_installed_with_name(features, project[:feature])
 
-      if project.keys.include? :groupId then
-        fh = create_feature_hash(project[:groupId], project[:repository], project[:feature], project[:version], project[:condition], project[:hooks])
-        upgrade_feature(installed_features, fh)
-      else
-        upgrade_feature(installed_features, project)
-      end
+    to_uninstall, to_install = calculate_upgrade_actions(projects, features)
+
+    # first start uninstalling features in reverse order
+    to_uninstall.reverse.each do |f| 
+      trigger_event(f, :before_uninstall_feature)
+      feature_uninstall(f[:name], f[:version])
+      trigger_event(f, :after_uninstall_feature)
     end
+
+    # no install the new features
+    to_install.each do |f|
+      remove_otherversion_urls(f[:feature_url])
+      add_url(f[:feature_url])
+      trigger_event(f, :before_install_feature)
+      feature_install(f[:feature])
+      trigger_event(f, :after_install_feature)
+    end
+
+    list_bundles.find_all {|b| !b[:fragment] && b[:context] == "Failed"}
+                .each {|b| restart_bundle b[:id]}
   end
 
   # Extract the latest version from a maven-metadata file
@@ -101,33 +109,25 @@ module Install
   end
 
   def find_installed_with_name (features, name)
-    features.select {|f| f["name"] == name and f["status"] == "installed"}
+    features.select {|f| f[:name] == name and f[:status] == "installed"}
   end
 
-  def upgrade_feature(installed_features, feature)
+  def upgrade_feature(installed_features, feature, to_install, to_uninstall)
     install_new_feature = true
     p = method(feature[:condition])
     
     installed_features.each do |f|
       trigger_event(feature, :before_upgrade_feature)
-      if p.call(f["version"], feature[:version])
-        trigger_event(feature, :before_uninstall_feature)
-        feature_uninstall("#{feature[:feature]}/#{f['version']}")
-        trigger_event(feature, :after_uninstall_feature)
+      if p.call(f[:version], feature[:version])
+        to_uninstall << f
       else
         install_new_feature = false
       end
     end
     
-
-    if install_new_feature 
-      remove_otherversion_urls(feature[:feature_url])
-      add_url(feature[:feature_url])
-      trigger_event(feature, :before_install_feature)
-      feature_install(feature[:feature])
-      trigger_event(feature, :after_install_feature)     
+    if install_new_feature
+      to_install << feature
     end
-    trigger_event(feature, :after_upgrade_feature)
   end
 
   def trigger_event (feature, event) 
@@ -157,5 +157,36 @@ module Install
      :condition => condition,
      :hooks => hooks
     }    
+  end
+
+  def fragment_bundle? (bundle)
+    bundle[:fragment]
+  end
+
+  def calculate_upgrade_actions (projects, features)
+    to_uninstall = []
+    to_install = []
+
+    projects.each do |project|
+      project = {:condition => :gt,
+                 :hooks => {}}.merge(project)
+     
+      install_new_feature = true      
+      installed_features = find_installed_with_name(features, project[:feature])
+
+      if project.keys.include? :groupId then
+        fh = create_feature_hash(project[:groupId], project[:repository], project[:feature], project[:version], project[:condition], project[:hooks])
+        upgrade_feature(installed_features, fh, to_install, to_uninstall)
+      else
+        upgrade_feature(installed_features, project, to_install, to_uninstall)
+      end
+    end
+
+    return to_uninstall, to_install
+  end
+
+  def restart_bundle (id)
+    stop id
+    start id
   end
 end

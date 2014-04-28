@@ -20,7 +20,7 @@ module Capistrano_Karaf
                           }x
     urls_to_remove=matcher_to_hash(url_details_regex,url)
     urls_to_remove.each do |u|   	
-	remove_artifact_urls(u['groupID'],u['artifactID'])
+	remove_artifact_urls(u[:groupID],u[:artifactID])
     end
   end
 
@@ -35,9 +35,9 @@ module Capistrano_Karaf
   #
   # Returns nothing
   def remove_artifact_urls (groupID, artifactID)
-    urlsToRemove=list_urls.select {|url| url['groupID'] == groupID && url['artifactID'] == artifactID}	
+    urlsToRemove=list_urls.select {|url| url[:groupID] == groupID && url[:artifactID] == artifactID}	
     urlsToRemove.each do |url|   	
-      remove_url "mvn:#{url["groupID"]}/#{url["artifactID"]}/#{url["version"]}/xml/features"
+      remove_url "mvn:#{url[:groupID]}/#{url[:artifactID]}/#{url[:version]}/xml/features"
     end
   end
 
@@ -126,8 +126,8 @@ module Capistrano_Karaf
   #
   # Returns true if the feature is installed
   def feature_installed? (name)
-    feature = list_features.find {|f| f['name']==name}
-    feature['status'] == 'installed' unless feature.nil?
+    feature = list_features.find {|f| f[:name]==name}
+    feature[:status] == 'installed' unless feature.nil?
   end
 
   # Verify if a the bundle context is started
