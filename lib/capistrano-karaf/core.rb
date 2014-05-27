@@ -14,6 +14,7 @@ SSHKit.config.command_map[:features_info] = 'features:info'
 SSHKit.config.command_map[:headers] = 'osgi:headers --force'
 SSHKit.config.command_map[:list] = 'osgi:list'
 SSHKit.config.command_map[:list_all] = 'osgi:list -t 0'
+SSHKit.config.command_map[:list_urls] = 'osgi:list -t 0 -l'
 SSHKit.config.command_map[:log_set] = 'log:set'
 SSHKit.config.command_map[:stop] = 'osgi:stop'
 SSHKit.config.command_map[:start] = 'osgi:start'
@@ -83,18 +84,15 @@ module Capistrano_Karaf
   def feature_uninstall(name, version)
     
     # Keep track of the bundles that are part of the feature
-    #bundles = feature_bundles(name, version)    
+    feature_bundle_urls = feature_bundles(name, version).collect {|b| b[:url]}
     execute(:features_uninstall, name)
     
     # Verify all bundles have been uninstalled and remove the bundle if not
-    #headers = list_headers
-    #bundles.each do |b|
-    #  matching_headers = headers.find do |h| 
-    #    h['Bundle-SymbolicName'] == b[:artifactId] && h['Bundle-Version'] == b[:version]
-    #  end
-
-    #  matching_headers.each {|h| uninstall['Bundle-Number']}
-    #end
+    list_bundle_locations.each do |installed_bundle|
+      if feature_bundle_urls.include? installed_bundle[:url] then
+        uninstall installed_bundle[:id]
+      end
+    end
   end
 
   # Set the log level on the karaf server
@@ -244,7 +242,7 @@ module Capistrano_Karaf
   #   # => [{:id => "10", :status => "INSTALLED", :blueprint => "", :context => "", :level => "60", :name => "camel-core", :version => "1.0.0"}]
   #
   # Returns a list of hashmaps containing the installed bundles
-  def list_all_bundles
+  def list_bundles
     bundle_line_matcher = 
         %r{ (?<id> \d+){0}
             (?<status> \w+){0}
@@ -255,6 +253,51 @@ module Capistrano_Karaf
             (?<version> .+){0}
 
             ^\[\s*\g<id>\]\s\[\s*\g<status>\s*\]\s\[\s*\g<blueprint>\s*\]\s\[\s*\g<context>\s*\]\s\[\s*\g<level>\s*\]\s\g<name>\s\(\g<version>\)
+          }x
+
+    fragments_matcher = /\s*Fragments: ([\d\s]+)\s*/
+    
+    data = capture(:list)
+
+    fragments = []
+    bundles = []
+
+    data.lines.each do |line|
+      m1 = bundle_line_matcher.match line
+      m2 = fragments_matcher.match line
+
+      if m1 then
+        bundles.push(m1)
+      elsif m2 then
+        fragment_bundles = m2[1].split /\s+/
+        fragment_bundles.each {|fb| fragments.push fb}
+      end
+    end
+
+    bundles1 = bundles.collect {|m| Hash[m.names.collect {|k| k.to_sym }.zip(m.captures)]}
+    bundles1.collect do |b| 
+      b[:fragment] = fragments.include? b[:id]
+      b
+    end
+  end
+
+  # List bundle locations
+  #
+  # Examples
+  #   list_bundle_locations
+  #   # => [{:id => "10", :status => "INSTALLED", :blueprint => "", :context => "", :level => "60", :url => "mvn:org.springframework/spring-webmvc/3.0.5.RELEASE"}]
+  #
+  # Returns a list of hashmaps containing the installed bundles and their url
+  def list_bundle_locations
+    bundle_line_matcher = 
+        %r{ (?<id> \d+){0}
+            (?<status> \w+){0}
+            (?<blueprint> \w*){0}
+            (?<context> \w*){0}
+            (?<level> \d+){0}
+            (?<url> [\w:\.\/\-]+){0}
+
+            ^\[\s*\g<id>\]\s\[\s*\g<status>\s*\]\s\[\s*\g<blueprint>\s*\]\s\[\s*\g<context>\s*\]\s\[\s*\g<level>\s*\]\s\g<url>
           }x
     
     data = capture(:list_all)
@@ -310,11 +353,12 @@ module Capistrano_Karaf
   def extract_bundles_from_feature (data)
     bundles = []
     data.lines.each do |l|
-      m = l.match(/.*mvn:(?<GroupId>[\w\.]+)\/(?<ArtifactId>[-\w\.]+)\/(?<Version>[-\d\w\.]+)/)
+      m = l.match(/mvn:(?<GroupId>[\w\.]+)\/(?<ArtifactId>[-\w\.]+)\/(?<Version>[-\d\w\.]+)/)
       if m then 
         bundles.push({ :groupId 	=> m['GroupId'],
                        :artifactId	=> m['ArtifactId'],
-                       :version	        => m['Version']})
+                       :version	        => m['Version'],
+                       :url             => m[0]})
       end
     end
     bundles
