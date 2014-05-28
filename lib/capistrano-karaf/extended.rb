@@ -49,12 +49,12 @@ module Capistrano_Karaf
   # name - a string containing the feature name
   # 
   # Examples
-  #   feature_uninstall_safe "test"
+  #   feature_uninstall_safe "test", "1.0.0"
   #   # => nil
   #
   # Returns nothing  
-  def feature_uninstall_safe (name)
-    feature_uninstall name unless !feature_installed? name
+  def feature_uninstall_safe (name, version)
+    feature_uninstall name, version unless !feature_installed? name, version
   end
 
   # Verify if a bundle is a fragment bundle
@@ -125,8 +125,8 @@ module Capistrano_Karaf
   #   # => true
   #
   # Returns true if the feature is installed
-  def feature_installed? (name)
-    feature = list_features.find {|f| f[:name]==name}
+  def feature_installed? (name, version)
+    feature = list_features.find {|f| f[:name]==name and f[:version] == version}
     feature[:status] == 'installed' unless feature.nil?
   end
 

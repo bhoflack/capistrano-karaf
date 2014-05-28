@@ -85,7 +85,7 @@ module Capistrano_Karaf
     
     # Keep track of the bundles that are part of the feature
     feature_bundle_urls = feature_bundles(name, version).collect {|b| b[:url]}
-    execute(:features_uninstall, name)
+    execute(:features_uninstall, "#{name}/#{version}")
     
     # Verify all bundles have been uninstalled and remove the bundle if not
     list_bundle_locations.each do |installed_bundle|
@@ -178,9 +178,9 @@ module Capistrano_Karaf
   def list_features
     feature_line_matcher = 
         %r{ (?<status> \w+){0}
-            (?<version> [\d\w\-\.\s]+){0}
+            (?<version> [\d\w\-\.]+){0}
             (?<name> [\w\-\.\:]+){0}
-            (?<repository> [\w\-\s\:\.]+){0}
+            (?<repository> [\w\-\:\.]+){0}
 
             ^\[\s*\g<status>\s*\]\s\[\s*\g<version>\s*\]\s*\g<name>\s*\g<repository>
           }x
