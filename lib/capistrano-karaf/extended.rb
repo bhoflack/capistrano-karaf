@@ -47,13 +47,14 @@ module Capistrano_Karaf
   # way it tries to avoid an exception on the karaf server.
   #
   # name - a string containing the feature name
+  # version - an optional version string
   # 
   # Examples
   #   feature_uninstall_safe "test", "1.0.0"
   #   # => nil
   #
   # Returns nothing  
-  def feature_uninstall_safe (name, version)
+  def feature_uninstall_safe (name, version=nil)
     feature_uninstall name, version unless !feature_installed? name, version
   end
 
@@ -119,6 +120,7 @@ module Capistrano_Karaf
   # Verify if a feature is installed
   #
   # name - a string containing the name of the feature
+  # version - an optional version string
   # 
   # Examples
   #   feature_installed? "camel-core"
@@ -126,7 +128,7 @@ module Capistrano_Karaf
   #
   # Returns true if the feature is installed
   def feature_installed? (name, version)
-    feature = list_features.find {|f| f[:name]==name and f[:version] == version}
+    feature = list_features.find {|f| f[:name]==name and (version.nil? or f[:version] == version)}
     feature[:status] == 'installed' unless feature.nil?
   end
 

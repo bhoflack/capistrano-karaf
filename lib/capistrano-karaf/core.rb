@@ -74,18 +74,23 @@ module Capistrano_Karaf
   # Uninstall a feature on the karaf server
   #
   # name - the string containing the feature name
-  # version - the string containing the version number
+  # version - the optional string containing the version number
   #
   # Examples
   #   feature_uninstall "hello" "2.19.0"
   #   # => nil
   #
   # Returns nothing
-  def feature_uninstall(name, version)
+  def feature_uninstall(name, version=nil)
     
     # Keep track of the bundles that are part of the feature
     feature_bundle_urls = feature_bundles(name, version).collect {|b| b[:url]}
-    execute(:features_uninstall, "#{name}/#{version}")
+
+    if version.nil? then
+      execute(:features_uninstall, "#{name}")
+    else
+      execute(:features_uninstall, "#{name}/#{version}")
+    end
     
     # Verify all bundles have been uninstalled and remove the bundle if not
     list_bundle_locations.each do |installed_bundle|
