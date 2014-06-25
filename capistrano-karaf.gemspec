@@ -1,9 +1,9 @@
 Gem::Specification.new do |s|
   s.name          = 'capistrano-karaf'
-  s.version       = '1.6.0'
+  s.version       = '1.6.2'
   s.date          = '2014-03-20'
   s.summary       = 'Capistrano functions for communicating with karaf'
-  s.authors       = ['Brecht Hoflack','Jerome Morel']
+  s.authors       = ['Brecht Hoflack']
   s.email         = 'brecht.hoflack@gmail.com'
   s.files         = [ 'lib/capistrano-karaf.rb', 
                       'lib/capistrano-karaf/core.rb', 
