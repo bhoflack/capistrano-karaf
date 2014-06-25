@@ -19,6 +19,7 @@ SSHKit.config.command_map[:log_set] = 'log:set'
 SSHKit.config.command_map[:stop] = 'osgi:stop'
 SSHKit.config.command_map[:start] = 'osgi:start'
 SSHKit.config.command_map[:uninstall] = 'osgi:uninstall --force'
+SSHKit.config.command_map[:startlevel] = 'osgi:start-level'
 
 module Capistrano_Karaf
   # Add a feature url to the karaf server
@@ -112,6 +113,20 @@ module Capistrano_Karaf
   def log_set (level)
     execute(:log_set, level)
   end
+
+  # Set the start level on the karaf server
+  #
+  # level - the string containing the level
+  #
+  # Examples
+  #   startlevel_set 60
+  #   # => nil
+  #
+  # Returns nothing
+  def startlevel_set (level)
+    execute(:startlevel, level)
+  end
+
 
   # Start a bundle with the specified bundleId on the karaf server
   #
