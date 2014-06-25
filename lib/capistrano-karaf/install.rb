@@ -12,7 +12,7 @@ module Install
   include Semantic_Versions
   
   # Upgrade a list of projects in karaf
-  #
+  # 
   # projects - a list of hashes containing either:
   #            - :feature_url - the string containing the feature url
   #            - :feature     - the string containing the feature name to upgrade
@@ -40,6 +40,12 @@ module Install
   #                                                     :after_install_feature,
   #                                                     :after_upgrade_feature
   #
+  #
+  # args - a hash containing optional args:
+  #         - :startlevel_before_upgrade - the number of the startlevel to go to before upgrading
+  #         - :startlevel_after_upgrade  - the number of the startlevel to go to after upgrading
+  #
+  #
   # Examples
   #   upgrade([{:feature_url => "mvn:repository/featurea/xml/features/1.1.0",
   #             :feature => "featurea",
@@ -55,15 +61,26 @@ module Install
   #             :repository => "featureb",
   #             :feature => "featureb",
   #             :version => :latest             
-  #            }
   #            }])
   #  # => nil
   #
   # Returns nothing
-  def upgrade (projects)
+  def upgrade (projects, args={})
+    args = {:startlevel_before_upgrade => 60, :startlevel_after_upgrade => 100}.merge(args)
     features = list_features()
 
     to_uninstall, to_install = calculate_upgrade_actions(projects, features)
+
+    # decrease the start level
+    startlevel_set args[:startlevel_before_upgrade]
+
+    wait_for_all_bundles(:timeout => 180, :sleeptime => 10) do |b|
+      if b[:level].to_i > args[:startlevel_before_upgrade] 
+        b[:status] == "Resolved"
+      else
+        true
+      end
+    end
 
     # first start uninstalling features in reverse order
     to_uninstall.reverse.each do |f| 
@@ -72,7 +89,7 @@ module Install
       trigger_event(f, :after_uninstall_feature)
     end
 
-    # no install the new features
+    # now install the new features
     to_install.each do |f|
       remove_otherversion_urls(f[:feature_url])
       add_url(f[:feature_url])
@@ -81,8 +98,20 @@ module Install
       trigger_event(f, :after_install_feature)
     end
 
+    # increase the start level
+    startlevel_set args[:startlevel_after_upgrade]
+    wait_for_all_bundles(:timeout => 180, :sleeptime => 10) do |b|
+      if (b[:level].to_i > args[:startlevel_before_upgrade] and 
+          b[:level].to_i <= args[:startlevel_after_upgrade])
+        ["Active","Resolved"].include? b[:status]
+      else
+        true
+      end
+    end
+
     list_bundles.find_all {|b| !b[:fragment] && b[:context] == "Failed"}
                 .each {|b| restart_bundle b[:id]}
+
   end
 
   # Extract the latest version from a maven-metadata file
