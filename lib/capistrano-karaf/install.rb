@@ -76,7 +76,7 @@ module Install
 
     wait_for_all_bundles(:timeout => 180, :sleeptime => 10) do |b|
       if b[:level].to_i > args[:startlevel_before_upgrade] 
-        b[:status] == "Resolved"
+        ["Resolved", "Installed"].include? b[:status]
       else
         true
       end
