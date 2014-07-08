@@ -50,12 +50,12 @@ module Install
   #   upgrade([{:feature_url => "mvn:repository/featurea/xml/features/1.1.0",
   #             :feature => "featurea",
   #             :version => "1.1.0",
-  #             :condition => gt
+  #             :condition => :gt
   #            },
   #            {:feature_url => "mvn:repository/featureb/xml/features/1.2.0",
   #             :feature => "featureb",
   #             :version => "1.2.0",
-  #             :condition => gt
+  #             :condition => :gt
   #            },
   #            {:groupId => "repository",
   #             :repository => "featureb",
