@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name          = 'capistrano-karaf'
-  s.version       = '1.6.3'
-  s.date          = '2014-03-20'
+  s.version       = '1.6.4'
+  s.date          = '2014-07-10'
   s.summary       = 'Capistrano functions for communicating with karaf'
   s.authors       = ['Brecht Hoflack']
   s.email         = 'brecht.hoflack@gmail.com'
