@@ -12,7 +12,18 @@ module Install
   include Semantic_Versions
   
   # Upgrade a list of projects in karaf
-  # 
+  #
+  # The following steps are performed to do an upgrade action:
+  #
+  #   - Compare the requested features with the installed features.
+  #     This will generate a list of features to remove and to install.
+  #   - Reduce the runlevel to the level configured in the :startlevel_before_upgrade option.
+  #     This ensures that the dependencies are stopped when the startlevels are managed properly.
+  #   - Uninstall the features to uninstall in reverse order.
+  #   - Install the features to install.
+  #   - Reset the runlevel to the previous state.
+  #   - Restart failed bundles.
+  #   
   # projects - a list of hashes containing either:
   #            - :feature_url - the string containing the feature url
   #            - :feature     - the string containing the feature name to upgrade
@@ -43,8 +54,6 @@ module Install
   #
   # args - a hash containing optional args:
   #         - :startlevel_before_upgrade - the number of the startlevel to go to before upgrading
-  #         - :startlevel_after_upgrade  - the number of the startlevel to go to after upgrading
-  #
   #
   # Examples
   #   upgrade([{:feature_url => "mvn:repository/featurea/xml/features/1.1.0",
@@ -66,52 +75,42 @@ module Install
   #
   # Returns nothing
   def upgrade (projects, args={})
-    args = {:startlevel_before_upgrade => 60, :startlevel_after_upgrade => 100}.merge(args)
+    args = {:startlevel_before_upgrade => 60}.merge(args)
+    initial_level = startlevel
     features = list_features()
 
     to_uninstall, to_install = calculate_upgrade_actions(projects, features)
 
-    # decrease the start level
-    startlevel_set args[:startlevel_before_upgrade]
+    begin
+      # decrease the start level
+      startlevel_set args[:startlevel_before_upgrade]
+      ensure_all_bundles_are_stopped args[:startlevel_before_upgrade]
 
-    wait_for_all_bundles(:timeout => 180, :sleeptime => 10) do |b|
-      if b[:level].to_i > args[:startlevel_before_upgrade] 
-        ["Resolved", "Installed"].include? b[:status]
-      else
-        true
+      # uninstall the calculated features in reverse order
+      to_uninstall.reverse.each do |f| 
+        trigger_event(f, :before_uninstall_feature)
+        feature_uninstall(f[:name], f[:version])
+        trigger_event(f, :after_uninstall_feature)
       end
-    end
 
-    # first start uninstalling features in reverse order
-    to_uninstall.reverse.each do |f| 
-      trigger_event(f, :before_uninstall_feature)
-      feature_uninstall(f[:name], f[:version])
-      trigger_event(f, :after_uninstall_feature)
+      # install the new features
+      to_install.each do |f|
+        remove_otherversion_urls(f[:feature_url])
+        add_url(f[:feature_url])
+        trigger_event(f, :before_install_feature)
+        feature_install(f[:feature])
+        trigger_event(f, :after_install_feature)
+      end
+    rescue
+      # restore the runlevel to the level before upgrading
+      startlevel_set initial_level
+      ensure_all_bundles_are_restarted args[:startlevel_before_upgrade], initial_level
     end
-
-    # now install the new features
-    to_install.each do |f|
-      remove_otherversion_urls(f[:feature_url])
-      add_url(f[:feature_url])
-      trigger_event(f, :before_install_feature)
-      feature_install(f[:feature])
-      trigger_event(f, :after_install_feature)
-    end
-
+      
     # increase the start level
     startlevel_set args[:startlevel_after_upgrade]
-    wait_for_all_bundles(:timeout => 180, :sleeptime => 10) do |b|
-      if (b[:level].to_i > args[:startlevel_before_upgrade] and 
-          b[:level].to_i <= args[:startlevel_after_upgrade])
-        ["Active","Resolved"].include? b[:status]
-      else
-        true
-      end
-    end
 
-    list_bundles.find_all {|b| !b[:fragment] && b[:context] == "Failed"}
-                .each {|b| restart_bundle b[:id]}
-
+    restart_failed_bundles
   end
 
   # Extract the latest version from a maven-metadata file
@@ -217,5 +216,31 @@ module Install
   def restart_bundle (id)
     stop id
     start id
+  end
+
+  def ensure_all_bundles_are_stopped (level_before_upgrade)
+    wait_for_all_bundles(:timeout => 180, :sleeptime => 10) do |b|
+      if b[:level].to_i > level_before_upgrade
+        ["Resolved", "Installed"].include? b[:status]
+      else
+        true
+      end
+    end
+  end
+
+  def ensure_all_bundles_are_restarted (level_before_upgrade, initial_level)
+    wait_for_all_bundles(:timeout => 180, :sleeptime => 10) do |b|
+      if (b[:level].to_i > level_before_upgrade and 
+          b[:level].to_i <= initial_level)
+        ["Active","Resolved"].include? b[:status]
+      else
+        true
+      end
+    end
+  end
+
+  def restart_failed_bundles 
+    list_bundles.find_all {|b| !b[:fragment] && b[:context] == "Failed"}
+                .each {|b| restart_bundle b[:id]}
   end
 end
