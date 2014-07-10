@@ -127,6 +127,16 @@ module Capistrano_Karaf
     execute(:startlevel, level)
   end
 
+  def startlevel
+    r = capture(:startlevel)
+    m = r.match(/Level (\d+)/)
+    if m then
+      m[0].to_i
+    else
+      raise 'Invalid response from startlevel'
+    end
+  end
+
 
   # Start a bundle with the specified bundleId on the karaf server
   #
