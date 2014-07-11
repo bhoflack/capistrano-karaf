@@ -77,8 +77,7 @@ module Install
   def upgrade (projects, args={})
     args = {:startlevel_before_upgrade => 60}.merge(args)
     initial_level = startlevel
-    features = list_features()
-
+    features = list_features
     to_uninstall, to_install = calculate_upgrade_actions(projects, features)
 
     begin
@@ -102,6 +101,8 @@ module Install
         trigger_event(f, :after_install_feature)
       end
     ensure
+      puts "Restoring the level to #{initial_level}"
+      
       # restore the runlevel to the level before upgrading
       startlevel_set initial_level
       ensure_all_bundles_are_restarted args[:startlevel_before_upgrade], initial_level
