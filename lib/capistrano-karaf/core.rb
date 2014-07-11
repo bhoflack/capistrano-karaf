@@ -131,7 +131,7 @@ module Capistrano_Karaf
     r = capture(:startlevel)
     m = r.match(/Level (\d+)/)
     if m then
-      m[0].to_i
+      m[1].to_i
     else
       raise 'Invalid response from startlevel'
     end
