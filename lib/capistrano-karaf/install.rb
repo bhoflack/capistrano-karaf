@@ -101,15 +101,12 @@ module Install
         feature_install(f[:feature])
         trigger_event(f, :after_install_feature)
       end
-    rescue
+    ensure
       # restore the runlevel to the level before upgrading
       startlevel_set initial_level
       ensure_all_bundles_are_restarted args[:startlevel_before_upgrade], initial_level
     end
       
-    # increase the start level
-    startlevel_set args[:startlevel_after_upgrade]
-
     restart_failed_bundles
   end
 
