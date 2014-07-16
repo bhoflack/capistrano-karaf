@@ -92,6 +92,8 @@ module Capistrano_Karaf
       puts "Some bundles are still failing the predicate"
       sleep args[:sleeptime]
     end
+
+    raise 'Not all bundles pass the predicate within the timeout' unless list_bundles.all? { |b| pred.call b }
   end
 
   # Wait till the predicate passes for a bundle
@@ -115,6 +117,8 @@ module Capistrano_Karaf
       puts "Bundle not yet started"
       sleep args[:sleeptime]
     end
+    
+    raise 'Not all bundles pass the predicate within the timeout' unless list_bundles.none? { |b| pred.call b }
   end
 
   # Verify if a feature is installed
