@@ -217,7 +217,7 @@ module Install
   end
 
   def ensure_all_bundles_are_stopped (level_before_upgrade)
-    wait_for_all_bundles(:timeout => 180, :sleeptime => 10) do |b|
+    wait_for_all_bundles(:timeout => 300, :sleeptime => 10) do |b|
       if b[:level].to_i > level_before_upgrade
         ["Resolved", "Installed"].include? b[:status]
       else
@@ -227,7 +227,7 @@ module Install
   end
 
   def ensure_all_bundles_are_restarted (level_before_upgrade, initial_level)
-    wait_for_all_bundles(:timeout => 180, :sleeptime => 10) do |b|
+    wait_for_all_bundles(:timeout => 300, :sleeptime => 10) do |b|
       if (b[:level].to_i > level_before_upgrade and 
           b[:level].to_i <= initial_level)
         ["Active","Resolved"].include? b[:status]
