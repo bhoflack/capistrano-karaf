@@ -54,6 +54,7 @@ module Install
   #
   # args - a hash containing optional args:
   #         - :startlevel_before_upgrade - the number of the startlevel to go to before upgrading
+  #         - :startlevel_after_upgrade - the number of the startlevel to go to after upgrading
   #
   # Examples
   #   upgrade([{:feature_url => "mvn:repository/featurea/xml/features/1.1.0",
@@ -75,21 +76,23 @@ module Install
   #
   # Returns nothing
   def upgrade (projects, args={})
-    args = {:startlevel_before_upgrade => 60}.merge(args)
-    initial_level = startlevel
+    args = {:startlevel_before_upgrade => 60, :startlevel_after_upgrade => 100}.merge(args)
     features = list_features
     to_uninstall, to_install = calculate_upgrade_actions(projects, features)
 
     begin
       # decrease the start level
-      startlevel_set args[:startlevel_before_upgrade]
-      ensure_all_bundles_are_stopped args[:startlevel_before_upgrade]
 
-      # uninstall the calculated features in reverse order
-      to_uninstall.reverse.each do |f| 
-        trigger_event(f, :before_uninstall_feature)
-        feature_uninstall(f[:name], f[:version])
-        trigger_event(f, :after_uninstall_feature)
+      unless to_uninstall.empty?
+        startlevel_set args[:startlevel_before_upgrade]
+        ensure_all_bundles_are_stopped args[:startlevel_before_upgrade]
+
+        # uninstall the calculated features in reverse order
+        to_uninstall.reverse.each do |f| 
+          trigger_event(f, :before_uninstall_feature)
+          feature_uninstall(f[:name], f[:version])
+          trigger_event(f, :after_uninstall_feature)
+        end
       end
 
       # install the new features
@@ -101,11 +104,11 @@ module Install
         trigger_event(f, :after_install_feature)
       end
     ensure
-      puts "Restoring the level to #{initial_level}"
+      puts "Restoring the level to #{args[:startlevel_after_upgrade]}"
       
       # restore the runlevel to the level before upgrading
-      startlevel_set initial_level
-      ensure_all_bundles_are_restarted args[:startlevel_before_upgrade], initial_level
+      startlevel_set args[:startlevel_after_upgrade]
+      ensure_all_bundles_are_restarted args[:startlevel_before_upgrade], args[:startlevel_after_upgrade]
     end
       
     restart_failed_bundles
@@ -230,7 +233,7 @@ module Install
     wait_for_all_bundles(:timeout => 600, :sleeptime => 10) do |b|
       if (b[:level].to_i > level_before_upgrade and 
           b[:level].to_i <= initial_level)
-        ["Active","Resolved"].include? b[:status]
+        ["Active","Resolved","Failed"].include? b[:status]
       else
         true
       end
