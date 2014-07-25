@@ -93,7 +93,7 @@ module Capistrano_Karaf
       sleep args[:sleeptime]
     end
 
-    raise 'Not all bundles pass the predicate within the timeout' unless list_bundles.all? { |b| pred.call b }
+    raise "Not all bundles pass the predicate within the timeout of #{args[:timeout]} seconds" unless list_bundles.all? { |b| pred.call b }
   end
 
   # Wait till the predicate passes for a bundle
@@ -118,7 +118,9 @@ module Capistrano_Karaf
       sleep args[:sleeptime]
     end
     
-    raise 'Not all bundles pass the predicate within the timeout' unless list_bundles.none? { |b| pred.call b }
+    if list_bundles.none? { |b| pred.call b}
+      raise "Not all bundles pass the predicate within the timeout of #{args[:timeout]} seconds"
+    end
   end
 
   # Verify if a feature is installed
