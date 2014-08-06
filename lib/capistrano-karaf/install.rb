@@ -114,6 +114,31 @@ module Install
     restart_failed_bundles
   end
 
+  # Verify if all bundles are installed and started.
+  #
+  # Parameters
+  #   - expected_bundles - A list of strings containing the bundle names.
+  #
+  # Example
+  #   all_bundles_started? ["blub", "blubber"]
+  #   # returns true
+  #
+  # Returns true when all bundles are correctly installed and started
+  def all_bundles_started? (expected_bundles)
+    installed_bundles = list_bundles.collect {|b| b[:name]}
+    not_installed_bundles = expected_bundles - installed_bundles
+    raise "The following bundles are missing: #{not_installed_bundles}" unless not_installed_bundles.empty?
+
+    wait_for_all_bundles do |b|
+      if expected_bundles.include? b[:name]
+        b[:context] == "Started"
+      else
+        true
+      end
+    end
+    true
+  end
+
   # Extract the latest version from a maven-metadata file
   #
   # Parameters
