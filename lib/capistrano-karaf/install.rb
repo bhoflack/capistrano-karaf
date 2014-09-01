@@ -258,7 +258,7 @@ module Install
     wait_for_all_bundles(:timeout => 600, :sleeptime => 10) do |b|
       if (b[:level].to_i > level_before_upgrade and 
           b[:level].to_i <= initial_level)
-        ["Active","Resolved","Failed"].include? b[:status]
+        ["Active","Failed"].include? b[:status]
       else
         true
       end
