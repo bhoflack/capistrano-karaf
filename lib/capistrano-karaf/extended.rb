@@ -133,7 +133,7 @@ module Capistrano_Karaf
   #   # => true
   #
   # Returns true if the feature is installed
-  def feature_installed? (name, version)
+  def feature_installed? (name, version=nil)
     feature = list_features.find {|f| f[:name]==name and (version.nil? or f[:version] == version)}
     feature[:status] == 'installed' unless feature.nil?
   end
