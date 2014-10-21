@@ -78,7 +78,10 @@ module Install
   def upgrade (projects, args={})
     args = {:startlevel_before_upgrade => 60, :startlevel_after_upgrade => 100}.merge(args)
     features = list_features
+    puts "Features #{features}"
     to_uninstall, to_install = calculate_upgrade_actions(projects, features)
+    puts "To uninstall #{to_uninstall}"
+    puts "To install #{to_install}"
 
     begin
       # decrease the start level
@@ -257,7 +260,8 @@ module Install
   def ensure_all_bundles_are_restarted (level_before_upgrade, initial_level)
     wait_for_all_bundles(:timeout => 600, :sleeptime => 10) do |b|
       if (b[:level].to_i > level_before_upgrade and 
-          b[:level].to_i <= initial_level)
+          b[:level].to_i <= initial_level and
+          b[:name] != 'activemq-blueprint')
         ["Active","Failed"].include? b[:status]
       else
         true

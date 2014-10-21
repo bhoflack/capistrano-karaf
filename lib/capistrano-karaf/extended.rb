@@ -88,9 +88,12 @@ module Capistrano_Karaf
     args = {:timeout => 60, :sleeptime => 5}.merge(args)
     timeout = Time.now + args[:timeout]
     
-    until Time.now > timeout or list_bundles.all? { |b| pred.call b} 
-      puts "Some bundles are still failing the predicate"
+    bundles = list_bundles
+    until Time.now > timeout or bundles.all? { |b| pred.call b} 
+      failing_bundles = bundles.select { |b| !pred.call b }
+      puts "Some bundles are still failing the predicate #{pred}: #{failing_bundles}"
       sleep args[:sleeptime]
+      bundles = list_bundles
     end
 
     raise "Not all bundles pass the predicate within the timeout of #{args[:timeout]} seconds" unless list_bundles.all? { |b| pred.call b }
