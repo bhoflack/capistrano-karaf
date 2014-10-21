@@ -83,9 +83,9 @@ module Capistrano_Karaf
   #
   # Returns nothing
   def feature_uninstall(name, version=nil)
-    
     # Keep track of the bundles that are part of the feature
     feature_bundle_urls = feature_bundles(name, version).collect {|b| b[:url]}
+    puts "Bundles in feature: #{feature_bundle_urls}"
 
     if version.nil? then
       execute(:features_uninstall, "#{name}")
@@ -96,6 +96,7 @@ module Capistrano_Karaf
     # Verify all bundles have been uninstalled and remove the bundle if not
     list_bundle_locations.each do |installed_bundle|
       if feature_bundle_urls.include? installed_bundle[:url] then
+        puts "Uninstall bundle #{installed_bundle}"
         uninstall installed_bundle[:id]
       end
     end
@@ -382,6 +383,7 @@ module Capistrano_Karaf
 
   def extract_bundles_from_feature (data)
     bundles = []
+
     data.lines.each do |l|
       m = l.match(/mvn:(?<GroupId>[\w\.]+)\/(?<ArtifactId>[-\w\.]+)\/(?<Version>[-\d\w\.]+)/)
       if m then 
