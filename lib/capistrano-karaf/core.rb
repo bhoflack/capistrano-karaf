@@ -18,6 +18,7 @@ SSHKit.config.command_map[:list_urls] = 'osgi:list -t 0 -l'
 SSHKit.config.command_map[:log_set] = 'log:set'
 SSHKit.config.command_map[:stop] = 'osgi:stop'
 SSHKit.config.command_map[:start] = 'osgi:start'
+SSHKit.config.command_map[:install] = 'osgi:install -s'
 SSHKit.config.command_map[:uninstall] = 'osgi:uninstall --force'
 SSHKit.config.command_map[:startlevel] = 'osgi:start-level'
 
@@ -163,6 +164,18 @@ module Capistrano_Karaf
   # Returns nothing
   def stop (bundleId)
     execute(:stop, bundleId)
+  end
+
+  # Install a bundle
+  #
+  # uri - the uri for the bundle
+  #
+  # Examples
+  #   install "mvn:blaat/blubber"
+  #
+  # Returns nothing
+  def install uri
+    execute(:install, uri)
   end
 
   # Uninstall a bundle with the specified bundleId from the karaf server
