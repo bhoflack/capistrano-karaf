@@ -14,9 +14,26 @@ module Capistrano_karaf
             karaf_password = fetch :karaf_password, "smx"
             karaf_port = fetch :karaf_port, "8101"
 
-            args1 = ["sshpass", "-p", karaf_password, "ssh", "-o", "NoHostAuthenticationForLocalhost=yes", "#{karaf_username}@localhost", "-p", karaf_port].concat(args)
+            args1 = ["sshpass", "-p", karaf_password, "ssh", "-o", "NoHostAuthenticationForLocalhost=yes", "-o", "StrictHostKeyChecking=no", "#{karaf_username}@localhost", "-p", karaf_port].concat(args)
             options = { verbosity: Logger::DEBUG }.merge(args1.extract_options!)
-            _execute(*[*args1, options]).full_stdout.strip
+
+            r = nil
+            counter = 0
+            ex = nil
+            begin
+                counter += 1
+                begin
+                    r = _execute(*[*args1, options])
+                    ex = nil
+                    break
+                rescue SSHKit::Command::Failed => e
+                    output << SSHKit::LogMessage.new(Logger::WARN, "Got exception while running command #{args1} on host #{host.hostname}")
+                    ex = e
+                end
+            end while counter < 4
+
+            raise ex unless ex.nil?
+            r.full_stdout.strip
           else
             options = { verbosity: Logger::DEBUG }.merge(args.extract_options!)
             _execute(*[*args, options]).full_stdout.strip
@@ -31,8 +48,24 @@ module Capistrano_karaf
             karaf_password = fetch :karaf_password, "smx"
             karaf_port = fetch :karaf_port, "8101"
 
-            args1 = ["sshpass", "-p", karaf_password, "ssh", "-o", "NoHostAuthenticationForLocalhost=yes", "#{karaf_username}@localhost", "-p", karaf_port].concat(args)
-            _execute(*args1).success?
+            args1 = ["sshpass", "-p", karaf_password, "ssh", "-o", "NoHostAuthenticationForLocalhost=yes", "-o", "StrictHostKeyChecking=no", "#{karaf_username}@localhost", "-p", karaf_port].concat(args)
+            r = nil
+            counter = 0
+            ex = nil
+            begin
+                counter += 1
+                begin
+                    r = _execute(*args1)
+                    ex = nil
+                    break
+                rescue SSHKit::Command::Failed => e
+                    output << SSHKit::LogMessage.new(Logger::WARN, "Got exception while running command #{args1} on host #{host.hostname}")
+                    ex = e
+                end
+            end while counter < 4
+            
+            raise ex unless ex.nil?            
+            r.success?
           else
             _execute(*args).success?
           end
