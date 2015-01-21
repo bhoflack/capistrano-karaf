@@ -37,14 +37,6 @@ module Capistrano_karaf
             _execute(*args).success?
           end
       end
-
-      def has_class? (host, clazz)
-        hosts = Capistrano::DSL.roles(clazz)
-        return (not (hosts.find do |host| 
-                       puts "'#{host.hostname.class}' == #{host.hostname}"
-                       host.hostname == hostname
-                     end.nil?))
-      end
     end
   end
 end
