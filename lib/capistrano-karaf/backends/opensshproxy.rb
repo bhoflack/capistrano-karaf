@@ -41,8 +41,6 @@ module Capistrano_karaf
       end
 
       def execute(*args)
-        args1 = resolve_command(*args)
-
         karaf_role = fetch :karaf_role, :karaf
         if host.has_role? karaf_role
 
