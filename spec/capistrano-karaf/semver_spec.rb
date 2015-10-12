@@ -10,6 +10,7 @@ describe Semantic_Versions do
       expect(gt('2.18.0', '2.19.0')).to eq true
       expect(gt('2.19.0', '2.19.0')).to eq false
       expect(gt('3.0', '2.19.0')).to eq false
+      expect(gt('1.8.1', '1.10.0')).to eq true
     end
 
     it 'Lower than compares if the installed version is lower than the provided' do

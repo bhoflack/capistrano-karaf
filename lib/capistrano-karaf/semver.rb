@@ -58,9 +58,9 @@ module Semantic_Versions
         return :gt
       elsif prov.nil? then
         return :lt
-      elsif inst < prov then
+      elsif inst.to_i < prov.to_i then
         return :gt
-      elsif inst > prov then
+      elsif inst.to_i > prov.to_i then
         return :lt
       end
     end

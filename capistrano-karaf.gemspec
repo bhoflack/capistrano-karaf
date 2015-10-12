@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name          = 'capistrano-karaf'
-  s.version       = '1.7.3'
-  s.date          = '2015-01-13'
+  s.version       = '1.8.3'
+  s.date          = '2015-06-19'
   s.summary       = 'Capistrano functions for communicating with karaf'
   s.authors       = ['Brecht Hoflack']
   s.email         = 'brecht.hoflack@gmail.com'
@@ -10,6 +10,7 @@ Gem::Specification.new do |s|
                       'lib/capistrano-karaf/extended.rb',
                       'lib/capistrano-karaf/semver.rb',
                       'lib/capistrano-karaf/install.rb',
+                      'lib/capistrano-karaf/docker.rb',
                       'lib/capistrano-karaf/backends/opensshproxy.rb' ]
   s.homepage      = 'http://github.com/bhoflack/capistrano-karaf'
   s.license       = 'bsd'
