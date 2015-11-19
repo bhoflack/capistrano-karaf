@@ -142,6 +142,9 @@ module Install
     true
   end
 
+  class LatestVersionNotDefinedError < StandardError
+  end
+
   # Extract the latest version from a maven-metadata file
   #
   # Parameters
@@ -154,13 +157,26 @@ module Install
   # Returns a string containing the version
   def extract_latest_version (xml)
     doc = REXML::Document.new(xml)
-    version = REXML::XPath.first(doc, "/metadata/versioning/latest").text
+    latest = REXML::XPath.first(doc, "/metadata/versioning/latest")
+
+    unless latest.nil? then
+        latest.text
+    else
+        # if only one is defined get it from the versions
+        latest = REXML::XPath.first(doc, "/metadata/versioning/versions/version")
+        
+        unless latest.nil? then
+          latest.text
+        else
+          raise LatestVersionNotDefinedError 
+        end
+    end
   end
 
   private
   def latest_snapshot_version (groupId, artifactId)
     groupId1 = groupId.split('.').join('/')
-    url = "http://nexus.colo.elex.be:8081/nexus/content/groups/public-snapshots/#{groupId1}/#{artifactId}/maven-metadata.xml"
+    url = "https://dsl.melexis.com/artifactory/libs-snapshot-local/#{groupId1}/#{artifactId}/maven-metadata.xml"
     uri = URI(url)
     maven_metadata = Net::HTTP.get(uri)    
   end
@@ -201,7 +217,11 @@ module Install
   def create_feature_hash(groupId, repository, feature, version, condition, hooks)
     version1 = nil
     if version == :latest then
-      version1 = extract_latest_version(latest_snapshot_version(groupId, repository))
+      begin
+        version1 = extract_latest_version(latest_snapshot_version(groupId, repository))
+      rescue LatestVersionNotDefinedError
+        raise "Latest version not defined for #{groupId}/#{repository} #{feature}"
+      end
     else
       version1 = version
     end
