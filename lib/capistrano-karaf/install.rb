@@ -157,19 +157,20 @@ module Install
   # Returns a string containing the version
   def extract_latest_version (xml)
     doc = REXML::Document.new(xml)
-    latest = REXML::XPath.first(doc, "/metadata/versioning/latest")
+
+    latest = nil
+    REXML::XPath.each(doc, "/metadata/versioning/versions/version") do |el|
+      if latest.nil?
+        latest = el.text
+      elsif gt(latest, el.text)
+        latest = el.text
+      end
+    end
 
     unless latest.nil? then
-        latest.text
+      latest
     else
-        # if only one is defined get it from the versions
-        latest = REXML::XPath.first(doc, "/metadata/versioning/versions/version")
-        
-        unless latest.nil? then
-          latest.text
-        else
-          raise LatestVersionNotDefinedError 
-        end
+      raise LatestVersionNotDefinedError
     end
   end
 
